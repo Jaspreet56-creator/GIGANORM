@@ -63,7 +63,7 @@ Run:
 ```bash
 ./giganorm srr_list.txt coords.bed /path/to/STARindex /path/to/output_dir 500 TPM
 ```
-All samples will be processed in parallel batches (max 500 at a time) [Please change this as per your available resources - SLURM capacity, storage etc]
+All samples will be processed in parallel batches (500 in the given example) [Please change this as per your available resources - SLURM capacity, storage etc]
 
 Per-sample metrics appear in /path/to/output_dir/TPM/SRRxxxxxx.TPM.txt
 
