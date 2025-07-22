@@ -66,7 +66,7 @@ cd giganorm
 chmod +x giganorm
 ```
 
-##Quick Start
+## Quick Start
 Prepare:
 ```bash
 srr_list.txt — one SRA/ENA accession per line (no headers)
