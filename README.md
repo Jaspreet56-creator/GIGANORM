@@ -1,48 +1,65 @@
+############################################################################
+#                                                                          #
+#     ██████╗ ██╗ ██████╗  █████╗ ███╗   ██╗ ██████╗ ██████╗ ███╗   ███╗   #
+#    ██╔════╝ ██║██╔════╝ ██╔══██╗████╗  ██║██╔═══██╗██╔══██╗████╗ ████║   #
+#    ██║  ███╗██║██║  ███╗███████║██╔██╗ ██║██║   ██║██████╔╝██╔████╔██║   #
+#    ██║   ██║██║██║   ██║██╔══██║██║╚██╗██║██║   ██║██╔══██╗██║╚██╔╝██║   #
+#    ╚██████╔╝██║╚██████╔╝██║  ██║██║ ╚████║╚██████╔╝██║  ██║██║ ╚═╝ ██║   #
+#     ╚═════╝ ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝   #
+#                                                                          #
+#    GIGANORM:  When your datasets are so big, only 'giga' energy can      #
+#               chew through them (and burp up a matrix).                  #
+#                                                                          #
+#                 "Go big, get normalized."                                #
+############################################################################
+
 # giganorm 🐕‍🦺
 
-**Normalize gigantic (or tiny) NGS datasets, fast. One pipeline, one matrix, no stress.**
+**Effortlessly normalize gigantic (or tiny) NGS datasets — one pipeline, one matrix, no stress.**
 
 ---
 
-## What is it?
+## What is giganorm?
 
-`giganorm` is a Slurm-ready, SRA-to-matrix pipeline for generating TPM/RPKM/FPKM quantifications on custom regions across hundreds (or thousands!) of samples, in parallel. Fast, fun, and robust—just like our mascot, Norman the GigaDog.
+**giganorm** is a powerful, SLURM-ready pipeline for high-throughput calculation of normalized gene expression (TPM, RPKM, FPKM) over custom genomic regions, across hundreds or thousands of NGS samples.  
+Automatically downloads, aligns, quantifies, and merges, so you get a single matrix in one go.  
+Big data? Small data? No worries—giganorm has you covered.
+
+---
 
 ## Features
 
-- Automatic download (SRA/ENA fallback)
-- Auto-fixes BED formatting
-- Handles hundreds of samples with batch limiting (Slurm arrays)
-- Reuses partial results—never recomputes what you’ve already done!
-- Produces a single, ready-to-analyze expression matrix
-- Easy cleanup, funny mascot
+- Parallelized download, alignment, and quantification (SLURM arrays)
+- Automatic download (SRA with ENA fallback)
+- Automatic BED formatting fixes (tabs/spaces)
+- Skips samples and steps already completed—no recomputation
+- Batch-limited job submission (no cluster overflow)
+- All-in-one matrix output for any metric (TPM/RPKM/FPKM)
+- Optionally keeps or cleans up all intermediate files
+- Easy, robust, and fun (Norman the GigaDog says so!)
+
+---
+
+## Dependencies
+
+| Dependency      | Description                                  | Website/Install           |
+|-----------------|----------------------------------------------|---------------------------|
+| **Bash**        | Shell interpreter (v4+ recommended)          | [bash](https://www.gnu.org/software/bash/)                |
+| **SLURM**       | Workload manager for cluster arrays          | [slurm](https://slurm.schedmd.com/)                       |
+| **STAR**        | RNA-seq aligner                              | [STAR](https://github.com/alexdobin/STAR)                 |
+| **samtools**    | BAM file manipulation                        | [samtools](http://www.htslib.org/)                        |
+| **bedtools**    | Genomic intervals utility                    | [bedtools](https://bedtools.readthedocs.io/en/latest/)     |
+| **sra-tools**   | For `prefetch`, `fastq-dump`                 | [sra-tools](https://github.com/ncbi/sra-tools)            |
+| **wget**        | Command-line downloader                      | [wget](https://www.gnu.org/software/wget/)                |
+| **awk, grep**   | Standard text-processing tools               | Built-in to most Linux/Unix systems                       |
+
+> ⚡️ **Tip:** Use [Conda](https://conda.io/) or your cluster modules to install everything.
 
 ---
 
 ## Installation
 
-1. Clone the repo:
-    ```bash
-    git clone https://github.com/YOUR_USERNAME/giganorm.git
-    cd giganorm
-    ```
-2. Make the script executable:
-    ```bash
-    chmod +x giganorm
-    ```
-
-3. **Dependencies:**  
-    - Bash, SLURM, STAR, samtools, bedtools, fastq-dump/prefetch, wget, awk  
-    - (See [dependencies](#dependencies) section below)
-
----
-
-## Quick Start
-
-Prepare:
-- `srr_list.txt` — one SRR/sample per line
-- `coords.bed` — regions to quantify (BED, can be space- or tab-delimited)
-
-**Example:**
 ```bash
-./giganorm srr_list.txt coords.bed /path/to/STARindex /path/to/output_dir 10 TPM
+git clone https://github.com/YOUR_USERNAME/giganorm.git
+cd giganorm
+chmod +x giganorm
