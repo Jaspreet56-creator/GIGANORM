@@ -65,6 +65,7 @@ git clone https://github.com/YOUR_USERNAME/giganorm.git
 cd giganorm
 chmod +x giganorm
 ```
+---
 
 ## Quick Start
 Prepare:
@@ -81,10 +82,14 @@ Run:
 -A single merged matrix will be generated: /path/to/output_dir/TPM/combined_TPM_matrix.tsv
 -All logs are in /path/to/output_dir/logs/
 
+---
+
 ## To keep all intermediate files, add:
 ```bash
 ./giganorm --keep-intermediate srr_list.txt coords.bed /path/to/STARindex /path/to/output_dir 500 TPM
 ```
+---
+
 ## Output
 Per-sample metric files:
 ```bash
@@ -98,27 +103,29 @@ Logs:
 ```bash
 output_dir/logs/
 ```
+---
+
 ## Usage
 Show help:
 ```bash
 ./giganorm --help
 
-                                                ############################################################################
-                                                #                                                                          #
-                                                #     ██████╗ ██╗ ██████╗  █████╗ ███╗   ██╗ ██████╗ ██████╗ ███╗   ███╗   #
-                                                #    ██╔════╝ ██║██╔════╝ ██╔══██╗████╗  ██║██╔═══██╗██╔══██╗████╗ ████║   #
-                                                #    ██║  ███╗██║██║  ███╗███████║██╔██╗ ██║██║   ██║██████╔╝██╔████╔██║   #
-                                                #    ██║   ██║██║██║   ██║██╔══██║██║╚██╗██║██║   ██║██╔══██╗██║╚██╔╝██║   #
-                                                #    ╚██████╔╝██║╚██████╔╝██║  ██║██║ ╚████║╚██████╔╝██║  ██║██║ ╚═╝ ██║   #
-                                                #     ╚═════╝ ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝   #
-                                                #                                                                          #
-                                                #           GIGANORM:   When your datasets are so big,                 #
-                                                #                       only a pipeline with 'giga' energy can             #
-                                                #                       chew through them (and burp up a matrix).          #
-                                                #                                                                          #
-                                                #                         "Go big, get normalized."                        #
-                                                #                                                                          #
-                                                ############################################################################
+                        ############################################################################
+                        #                                                                          #
+                        #     ██████╗ ██╗ ██████╗  █████╗ ███╗   ██╗ ██████╗ ██████╗ ███╗   ███╗   #
+                        #    ██╔════╝ ██║██╔════╝ ██╔══██╗████╗  ██║██╔═══██╗██╔══██╗████╗ ████║   #
+                        #    ██║  ███╗██║██║  ███╗███████║██╔██╗ ██║██║   ██║██████╔╝██╔████╔██║   #
+                        #    ██║   ██║██║██║   ██║██╔══██║██║╚██╗██║██║   ██║██╔══██╗██║╚██╔╝██║   #
+                        #    ╚██████╔╝██║╚██████╔╝██║  ██║██║ ╚████║╚██████╔╝██║  ██║██║ ╚═╝ ██║   #
+                        #     ╚═════╝ ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝   #
+                        #                                                                          #
+                        #           GIGANORM:   When your datasets are so big,                     #
+                        #                       only a pipeline with 'giga' energy can             #
+                        #                       chew through them (and burp up a matrix).          #
+                        #                                                                          #
+                        #                         "Go big, get normalized."                        #
+                        #                                                                          #
+                        ############################################################################
 
 
 Usage:
