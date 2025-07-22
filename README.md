@@ -64,3 +64,11 @@ Automatically downloads, aligns, quantifies, and merges, so you get a single mat
 git clone https://github.com/YOUR_USERNAME/giganorm.git
 cd giganorm
 chmod +x giganorm
+```
+
+##Quick Start
+Prepare:
+```bash
+srr_list.txt — one SRA/ENA accession per line (no headers)
+coords.bed — regions to quantify (chr, start, end, region_name; tab or space delimited)
+```
