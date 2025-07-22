@@ -144,8 +144,8 @@ Options:
        \ Q /          All data normalized. Tail is wagging.
        / - \
        |    \
-       |     \     "If your files are too big,
-       || (___\        just giganorm it!"
+       |     \           "If your files are too big,
+       || (___\              just giganorm it!"
 
 ---
 
