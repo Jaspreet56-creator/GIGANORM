@@ -1,0 +1,23 @@
+<svg width="510" height="130" viewBox="0 0 510 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="2" y="2" width="506" height="126" rx="16" fill="#f7fcff" stroke="#23395d" stroke-width="4"/>
+  <text x="32" y="65" font-family="monospace, monospace" font-size="48" fill="#23395d" font-weight="bold">giganorm</text>
+  <text x="32" y="108" font-family="monospace, monospace" font-size="18" fill="#16bac5">Go big, get normalized.</text>
+  <!-- GigaDog mascot (Greyscale/aqua variant) -->
+  <g>
+    <!-- Dog Head -->
+    <ellipse cx="440" cy="73" rx="24" ry="18" fill="#e0f7fa" stroke="#16bac5" stroke-width="2"/>
+    <!-- Ears -->
+    <ellipse cx="428" cy="54" rx="6" ry="10" fill="#16bac5"/>
+    <ellipse cx="452" cy="54" rx="6" ry="10" fill="#16bac5"/>
+    <!-- Eyes -->
+    <ellipse cx="433" cy="72" rx="2" ry="3" fill="#23395d"/>
+    <ellipse cx="447" cy="72" rx="2" ry="3" fill="#23395d"/>
+    <!-- Nose -->
+    <ellipse cx="440" cy="82" rx="3" ry="2" fill="#23395d"/>
+    <!-- Mouth -->
+    <path d="M438 86 Q440 88 442 86" stroke="#23395d" stroke-width="2" fill="none"/>
+    <!-- Tail wag -->
+    <path d="M464 74 Q470 77 468 86" stroke="#16bac5" stroke-width="2" fill="none"/>
+  </g>
+  <text x="415" y="115" font-family="monospace, monospace" font-size="13" fill="#16bac5" transform="rotate(-7 415,115)">Woof!</text>
+</svg>
