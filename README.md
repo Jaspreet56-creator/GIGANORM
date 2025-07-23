@@ -38,6 +38,7 @@
 | **bedtools**    | Genomic intervals utility                    | [bedtools](https://bedtools.readthedocs.io/en/latest/)[3] |
 | **sra-tools**   | For `prefetch`, `fastq-dump`                 | [sra-tools](https://github.com/ncbi/sra-tools) [4]        |
 | **wget**        | Command-line downloader                      | [wget](https://www.gnu.org/software/wget/)                |
+| **WebProxy**    | proxy server with web-based configuration    | [WebProxy](https://github.com/bp2008/WebProxy)[5]         |
 | **awk, grep**   | Standard text-processing tools               | Built-in to most Linux/Unix systems                       |
 
 > ⚡️ **Tip:** Use [Conda](https://conda.io/) or your cluster modules to install everything.
@@ -183,3 +184,5 @@ SOFTWARE.
    Bioinformatics. 2010 Mar 15;26(6):841-2. doi: 10.1093/bioinformatics/btq033. Epub 2010 Jan 28. PMID: 20110278; PMCID: PMC2832824.
 4. NCBI SRA Toolkit Development Team (2024). SRA Toolkit. National Center for Biotechnology Information.
    GitHub Repository. https://github.com/ncbi/sra-tools
+5. bp2008. (2024). WebProxy.
+   GitHub. https://github.com/bp2008/WebProxy
