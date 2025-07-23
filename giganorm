@@ -208,16 +208,16 @@ fi
 #=========================#
 if [[ "$MODE" == "pipeline" ]]; then
   N=$(wc -l < "$srr_list")
-  job_name="giganorm_${metric,,}"
+  job_name="giganorm"
   mkdir -p "${output_dir}/logs"
   mkdir -p "${output_dir}/fastq" "${output_dir}/bam" \
     "${output_dir}/counts" "${output_dir}/logs" "${output_dir}/${metric}"
 
   sbatch_args=(--array=1-"$N"%$batch_size
-    --job-name="$job_name"
-    --mem=92G
+    --job-name=job_name
+    --mem=48G
     --time=02:00:00
-    --ntasks=8
+    --ntasks=4
     --output="${output_dir}/logs/%A_%a.out"
     --error="${output_dir}/logs/%A_%a.err"
     --chdir="${output_dir}"
