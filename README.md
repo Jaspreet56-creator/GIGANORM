@@ -48,7 +48,7 @@
 ## Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/giganorm.git
+git clone https://github.com/Jaspreet56-creator/GIGANORM.git
 cd giganorm
 chmod +x giganorm
 ```
