@@ -60,7 +60,6 @@ EOF
 KEEP_INTERMEDIATE=0
 MODE="pipeline"
 
-# Option parsing
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --keep|--keep-intermediate)
@@ -100,17 +99,14 @@ if [[ "$MODE" == "merge-matrix" ]]; then
 
   matrix_out="${output_dir}/${metric}/combined_${metric}_matrix.tsv"
 
-  # Read regions (ordered) from BED: chr:start-end
   mapfile -t regions < <(awk '{print $1 ":" $2 "-" $3}' "$coords_bed")
 
-  # Print header
   {
     printf "sample"
     for reg in "${regions[@]}"; do printf "\t%s" "$reg"; done
     printf "\n"
   } > "$matrix_out"
 
-  # For each sample, collect values
   while read -r SRR_ID; do
     [[ -z "$SRR_ID" ]] && continue
     file="${output_dir}/${metric}/${SRR_ID}.${metric}.txt"
