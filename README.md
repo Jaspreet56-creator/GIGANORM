@@ -65,7 +65,7 @@ STAR --runThreadN 4 --runMode genomeGenerate --genomeDir /path/to/STARindex --ge
 ## Quick Start
 Prepare:
 ```bash
-example_srr_list.txt — one SRA/ENA accession per line (no headers) [PLEASE INCLUDE ANY NUMERIC VALUE IN LAST LINE OF THIS FILE]
+example_srr_list.txt — one SRA/ENA accession per line (no headers) 
 example_coords.bed — regions to quantify (chr, start, end, region_name; tab or space delimited)
 ```
 Run:
