@@ -53,18 +53,25 @@ cd giganorm
 chmod +x giganorm
 ```
 ---
+## PRE-REQUISITES
+
+**Make sure the INDEX file is already generated for your target species using STAR**
+IF Not, please use the following command to do so:
+```bash
+STAR --runThreadN 4 --runMode genomeGenerate --genomeDir /path/to/STARindex --genomeFastaFiles /path/to/genome_fasta_file.fa --sjdbGTFfile /path/to/genome_annotation_gtf.gtf
+```
 
 ## Quick Start
 Prepare:
 ```bash
-srr_list.txt — one SRA/ENA accession per line (no headers)
-coords.bed — regions to quantify (chr, start, end, region_name; tab or space delimited)
+example_srr_list.txt — one SRA/ENA accession per line (no headers) [PLEASE INCLUDE ANY CHARACTER IN LAST LINE OF THIS FILE]
+example_coords.bed — regions to quantify (chr, start, end, region_name; tab or space delimited)
 ```
 Run:
 ```bash
-./giganorm srr_list.txt coords.bed /path/to/STARindex /path/to/output_dir 500 TPM
+./giganorm example_srr_list.txt example_coords.bed /path/to/STARindex /path/to/output_dir 500 TPM
 ```
-All samples will be processed in parallel batches (500 in the given example) [Please change this as per your available resources - SLURM capacity, storage etc]
+All samples will be processed in parallel batches (3 in this toy example) [Please change this as per your available resources - SLURM capacity, storage etc]
 
 Per-sample metrics appear in /path/to/output_dir/TPM/SRRxxxxxx.TPM.txt
 
@@ -76,7 +83,7 @@ All logs are in /path/to/output_dir/logs/
 
 ## To keep all intermediate files, add:
 ```bash
-./giganorm --keep-intermediate srr_list.txt coords.bed /path/to/STARindex /path/to/output_dir 500 TPM
+./giganorm --keep-intermediate example_srr_list.txt example_coords.bed /path/to/STARindex /path/to/output_dir 500 TPM
 ```
 ---
 
