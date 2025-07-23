@@ -38,7 +38,6 @@ show_help() {
   cat <<EOF
 Usage:
   $0 [--keep-intermediate] [--run-task] <srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
-  $0 --merge-matrix <srr_list.txt> <coords.bed> <output_dir> <metric>
 
 Arguments:
   srr_list.txt     File with one SRR accession per line.
@@ -245,7 +244,6 @@ fi
 task_id=${SLURM_ARRAY_TASK_ID}
 SRR=$(sed -n "${task_id}p" "$srr_list" | tr -d '\r\n')
 
-# Dynamically update job name to match sample
 if [[ -n "${SLURM_JOB_ID:-}" && -n "$SRR" ]]; then
   scontrol update JobId="${SLURM_JOB_ID}" JobName="giganorm_${SRR}" 2>/dev/null || true
 fi
@@ -388,21 +386,17 @@ fi
 if [[ "$KEEP_INTERMEDIATE" -eq 0 ]]; then
   echo "[$(date)] [Step 11] Cleaning up intermediate files for $SRR (KEEP_INTERMEDIATE=0)"
 
-  # Remove per-sample FASTQs, BAMs, and counts
   rm -f fastq/${SRR}*.fastq.gz bam/${SRR}* counts/${SRR}*
 
-  # Remove per-sample SRA extraction dir (if it exists)
   if [[ -d "${SRR}" ]]; then
     rm -rf "${SRR}"
     echo "[$(date)]   Deleted ${SRR} (SRA dir)"
   fi
 
-  # Remove sample-named dirs within bam/counts if present
   for d in bam counts; do
     [[ -d "${d}/${SRR}" ]] && rm -rf "${d:?}/${SRR}"
   done
 
-  # Remove temporary BED if we created a tabfix
   if [[ "$BED_FIXED" -eq 1 ]]; then
     rm -f "$coords_bed_fixed"
   fi
@@ -422,11 +416,9 @@ merge_lock="${metric_dir}/.matrix_merge.lock"
 
 nfound=$(ls "${metric_dir}/"*.${metric}.txt 2>/dev/null | wc -l)
 if [[ "$nfound" -eq "$total" && ! -e "$merge_lock" ]]; then
-  # Create a lock so only one task merges
   touch "$merge_lock"
   echo "[$(date)] [Step 12] All $nfound/$total per-sample $metric tables found, merging..."
 
-  # Build region headers from BED
   mapfile -t regions < <(awk '{print $1 ":" $2 "-" $3}' "$coords_bed")
   {
     printf "sample"
@@ -434,7 +426,6 @@ if [[ "$nfound" -eq "$total" && ! -e "$merge_lock" ]]; then
     printf "\n"
   } > "$matrix_out"
 
-  # Add data for each sample
   while read -r SRR_ID; do
     [[ -z "$SRR_ID" ]] && continue
     file="${metric_dir}/${SRR_ID}.${metric}.txt"
@@ -466,7 +457,6 @@ if [[ "$nfound" -eq "$total" && ! -e "$merge_lock" ]]; then
 
 EOF
 
-  # Clean up empty dirs after merging
   for d in fastq bam counts; do
     if [[ -d "$output_dir/$d" && -z "$(ls -A "$output_dir/$d")" ]]; then
       rmdir "$output_dir/$d"
