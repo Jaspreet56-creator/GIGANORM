@@ -70,7 +70,7 @@ example_coords.bed — regions to quantify (chr, start, end, region_name; tab or
 ```
 Run:
 ```bash
-./giganorm example_srr_list.txt example_coords.bed /path/to/STARindex /path/to/output_dir 3 TPM
+./giganorm /path/to/example_srr_list.txt /path/to/example_coords.bed /path/to/STARindex /path/to/output_dir 3 TPM
 ```
 All samples will be processed in parallel batches (3 in this toy example) [Please change this as per your available resources - SLURM capacity, storage etc]
 
@@ -84,7 +84,7 @@ All logs are in /path/to/output_dir/logs/
 
 ## To keep all intermediate files, add:
 ```bash
-./giganorm --keep-intermediate example_srr_list.txt example_coords.bed /path/to/STARindex /path/to/output_dir 3 TPM
+./giganorm --keep-intermediate /path/to/example_srr_list.txt /path/to/example_coords.bed /path/to/STARindex /path/to/output_dir 3 TPM
 ```
 ---
 
