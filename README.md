@@ -70,7 +70,7 @@ example_coords.bed — regions to quantify (chr, start, end, region_name; tab or
 ```
 Run:
 ```bash
-./giganorm example_srr_list.txt example_coords.bed /path/to/STARindex /path/to/output_dir 500 TPM
+./giganorm example_srr_list.txt example_coords.bed /path/to/STARindex /path/to/output_dir 3 TPM
 ```
 All samples will be processed in parallel batches (3 in this toy example) [Please change this as per your available resources - SLURM capacity, storage etc]
 
