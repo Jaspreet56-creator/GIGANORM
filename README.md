@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="giganorm.svg" alt="GIGANORM Logo" width="400">
+  <img src="giganorm.svg" alt="GIGANORM Logo" width="800">
 </p>                              
 
 # giganorm 🐕‍🦺
