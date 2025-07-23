@@ -175,6 +175,14 @@ else
   metric=${6^^}
 fi
 
+# ========== RESOLVE ABSOLUTE PATHS FOR ALL INPUT FILES ==========
+srr_list=$(readlink -f "$srr_list")
+coords_bed=$(readlink -f "$coords_bed")
+STAR_index_dir=$(readlink -f "$STAR_index_dir")
+output_dir=$(readlink -f "$output_dir")
+
+
+
 #=========================#
 #  METRIC VALIDATION      #
 #=========================#
