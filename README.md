@@ -49,7 +49,7 @@
 
 ```bash
 git clone https://github.com/Jaspreet56-creator/GIGANORM.git
-cd giganorm
+cd GIGANORM
 chmod +x giganorm
 ```
 ---
