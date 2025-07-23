@@ -84,7 +84,7 @@ All logs are in /path/to/output_dir/logs/
 
 ## To keep all intermediate files, add:
 ```bash
-./giganorm --keep-intermediate example_srr_list.txt example_coords.bed /path/to/STARindex /path/to/output_dir 500 TPM
+./giganorm --keep-intermediate example_srr_list.txt example_coords.bed /path/to/STARindex /path/to/output_dir 3 TPM
 ```
 ---
 
