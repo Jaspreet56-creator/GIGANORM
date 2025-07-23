@@ -53,9 +53,10 @@ cd giganorm
 chmod +x giganorm
 ```
 ---
-## PRE-REQUISITES
+## Prerequisites
 
 **Make sure the INDEX file is already generated for your target species using STAR**
+
 IF Not, please use the following command to do so:
 ```bash
 STAR --runThreadN 4 --runMode genomeGenerate --genomeDir /path/to/STARindex --genomeFastaFiles /path/to/genome_fasta_file.fa --sjdbGTFfile /path/to/genome_annotation_gtf.gtf
