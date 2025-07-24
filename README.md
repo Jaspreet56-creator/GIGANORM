@@ -33,12 +33,14 @@
 |-----------------|----------------------------------------------|---------------------------|
 | **Bash**        | Shell interpreter (v4+ recommended)          | [bash](https://www.gnu.org/software/bash/)                |
 | **SLURM**       | Workload manager for cluster arrays          | [slurm](https://slurm.schedmd.com/)                       |
-| **STAR**        | RNA-seq aligner                              | [STAR](https://github.com/alexdobin/STAR) [1]             |
-| **samtools**    | BAM file manipulation                        | [samtools](http://www.htslib.org/) [2]                    |
-| **bedtools**    | Genomic intervals utility                    | [bedtools](https://bedtools.readthedocs.io/en/latest/)[3] |
-| **sra-tools**   | For `prefetch`, `fastq-dump`                 | [sra-tools](https://github.com/ncbi/sra-tools) [4]        |
+| **fastp**       | Quality control for FastQ data               | [fastp](https://github.com/OpenGene/fastp) [1]            |
+| **fastqc**      | Quality control checks on raw sequence data  | [fastqc](https://github.com/s-andrews/FastQC) [2]         |
+| **STAR**        | RNA-seq aligner                              | [STAR](https://github.com/alexdobin/STAR) [3]             |
+| **samtools**    | BAM file manipulation                        | [samtools](http://www.htslib.org/) [4]                    |
+| **bedtools**    | Genomic intervals utility                    | [bedtools](https://bedtools.readthedocs.io/en/latest/)[5] |
+| **sra-tools**   | For `prefetch`, `fastq-dump`                 | [sra-tools](https://github.com/ncbi/sra-tools) [6]        |
 | **wget**        | Command-line downloader                      | [wget](https://www.gnu.org/software/wget/)                |
-| **WebProxy**    | proxy server with web-based configuration    | [WebProxy](https://github.com/bp2008/WebProxy)[5]         |
+| **WebProxy**    | proxy server with web-based configuration    | [WebProxy](https://github.com/bp2008/WebProxy)[7]         |
 | **awk, grep**   | Standard text-processing tools               | Built-in to most Linux/Unix systems                       |
 
 > ⚡️ **Tip:** Use [Conda](https://conda.io/) or your cluster modules to install everything.
@@ -65,6 +67,7 @@ STAR --runThreadN 4 --runMode genomeGenerate --genomeDir /path/to/STARindex --ge
 ## Quick Start
 Prepare:
 ```bash
+example_fastq_list - one fastq file per line (path/to/sampleName.fastq.gz for SE, and path/to/sampleName_1.fastq.gz::path/to/sampleName_2.fastq.gz for PE)
 example_srr_list.txt — one SRA/ENA accession per line (no headers) 
 example_coords.bed — regions to quantify (chr, start, end, region_name; tab or space delimited)
 ```
@@ -85,6 +88,17 @@ All logs are in /path/to/output_dir/logs/
 ## To keep all intermediate files, add:
 ```bash
 ./giganorm --keep-intermediate /path/to/example_srr_list.txt /path/to/example_coords.bed /path/to/STARindex /path/to/output_dir 3 TPM
+```
+## To run locally, add:
+This will run in serial order:
+**Make sure when running locally do not define `<batch_size>`**
+```bash
+./giganorm --local --keep-intermediate /path/to/example_srr_list.txt /path/to/example_coords.bed /path/to/STARindex /path/to/output_dir 3 TPM
+```
+## If you already have the fastq files, add:
+This will run locally for each provided fastq file in serial order, if `--local` is not defined, SLURM jobs will be submitted for respective samples
+```bash
+./giganorm --local --keep-intermediate --input_fastq /path/to/example_fastq_list.txt /path/to/example_coords.bed /path/to/STARindex /path/to/output_dir 3 TPM
 ```
 ---
 
@@ -127,21 +141,23 @@ Show help:
 
 
 Usage:
-  ./giganorm [--keep-intermediate] [--run-task] <srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
+  giganorm_1 [--keep-intermediate] [--input_fastq] [--run-task] <fastq_files.txt|srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
+  giganorm_1 --local [--input_fastq] <fastq_files.txt|srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <metric>
 
 Arguments:
   srr_list.txt     File with one SRR accession per line.
-  coords.bed       BED file of regions; column 4 = region name (tab-delimited or space-delimited, will be fixed if needed).
+  fastq_files.txt  (with --input_fastq) List of FASTQ file paths: single-end (one per line) or paired-end ("fq1::fq2" per line).
+  coords.bed       BED file of regions.
   STAR_index_dir   Path to STAR genome index directory.
-  output_dir       Root directory for outputs (fastq/, bam/, counts/, logs/, <metric>/).
-  batch_size       Max number of concurrent tasks in the SLURM array. (Not needed in --run-task mode.)
-  metric           TPM, RPKM, or FPKM (normalizes by uniquely mapped reads).
+  output_dir       Root directory for outputs.
+  batch_size       Max concurrent tasks (for SLURM mode).
+  metric           TPM, RPKM, or FPKM.
 
 Options:
-  -h, --help         Show this help message and exit.
-  --keep, --keep-intermediate
-                     Keep all intermediate files (FASTQ, BAM, counts, etc.) [default: delete].
-  --run-task         Run a specific array task (internal).
+  --input_fastq         Use a FASTQ file list instead of SRR list.
+  --keep, --keep-intermediate  Keep all intermediate files.
+  --local               Run all samples serially (no SLURM; for both SRR and FASTQ).
+  -h, --help            Show this help message and exit.
 ```
 ---
 
@@ -159,6 +175,10 @@ Options:
 ---
 
 ## References
+1. Shifu Chen, Yanqing Zhou, Yaru Chen, Jia Gu, fastp: an ultra-fast all-in-one FASTQ preprocessor.
+   Bioinformatics, 34(17), i884–i890. https://doi.org/10.1093/bioinformatics/bty560
+2. Andrews, S. (2010). FastQC: A quality control tool for high-throughput sequence data.
+   https://github.com/s-andrews/FastQC
 1. Dobin A, Davis CA, Schlesinger F, Drenkow J, Zaleski C, Jha S, Batut P, Chaisson M, Gingeras TR. STAR: ultrafast universal RNA-seq aligner.
    Bioinformatics. 2013 Jan 1;29(1):15-21. doi: 10.1093/bioinformatics/bts635. Epub 2012 Oct 25. PMID: 23104886; PMCID: PMC3530905.
 2. Li H, Handsaker B, Wysoker A, Fennell T, Ruan J, Homer N, Marth G, Abecasis G, Durbin R; 1000 Genome Project Data Processing Subgroup. The Sequence Alignment/Map format and SAMtools.
