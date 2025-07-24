@@ -63,6 +63,49 @@ IF Not, please use the following command to do so:
 ```bash
 STAR --runThreadN 4 --runMode genomeGenerate --genomeDir /path/to/STARindex --genomeFastaFiles /path/to/genome_fasta_file.fa --sjdbGTFfile /path/to/genome_annotation_gtf.gtf
 ```
+## Usage
+Show help:
+```bash
+./giganorm --help
+
+                        ############################################################################
+                        #                                                                          #
+                        #     ██████╗ ██╗ ██████╗  █████╗ ███╗   ██╗ ██████╗ ██████╗ ███╗   ███╗   #
+                        #    ██╔════╝ ██║██╔════╝ ██╔══██╗████╗  ██║██╔═══██╗██╔══██╗████╗ ████║   #
+                        #    ██║  ███╗██║██║  ███╗███████║██╔██╗ ██║██║   ██║██████╔╝██╔████╔██║   #
+                        #    ██║   ██║██║██║   ██║██╔══██║██║╚██╗██║██║   ██║██╔══██╗██║╚██╔╝██║   #
+                        #    ╚██████╔╝██║╚██████╔╝██║  ██║██║ ╚████║╚██████╔╝██║  ██║██║ ╚═╝ ██║   #
+                        #     ╚═════╝ ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝   #
+                        #                                                                          #
+                        #           GIGANORM:   When your datasets are so big,                     #
+                        #                       only a pipeline with 'giga' energy can             #
+                        #                       chew through them (and burp up a matrix).          #
+                        #                                                                          #
+                        #                         "Go big, get normalized."                        #
+                        #                                                                          #
+                        ############################################################################
+
+
+Usage:
+  giganorm_1 [--keep-intermediate] [--input_fastq] [--run-task] <fastq_files.txt|srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
+  giganorm_1 --local [--input_fastq] <fastq_files.txt|srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <metric>
+
+Arguments:
+  srr_list.txt     File with one SRR accession per line.
+  fastq_files.txt  (with --input_fastq) List of FASTQ file paths: single-end (one per line) or paired-end ("fq1::fq2" per line).
+  coords.bed       BED file of regions.
+  STAR_index_dir   Path to STAR genome index directory.
+  output_dir       Root directory for outputs.
+  batch_size       Max concurrent tasks (for SLURM mode).
+  metric           TPM, RPKM, or FPKM.
+
+Options:
+  --input_fastq         Use a FASTQ file list instead of SRR list.
+  --keep, --keep-intermediate  Keep all intermediate files.
+  --local               Run all samples serially (no SLURM; for both SRR and FASTQ).
+  -h, --help            Show this help message and exit.
+```
+---
 
 ## Quick Start
 Prepare:
@@ -114,50 +157,6 @@ output_dir/TPM/combined_TPM_matrix.tsv
 Logs:
 ```bash
 output_dir/logs/
-```
----
-
-## Usage
-Show help:
-```bash
-./giganorm --help
-
-                        ############################################################################
-                        #                                                                          #
-                        #     ██████╗ ██╗ ██████╗  █████╗ ███╗   ██╗ ██████╗ ██████╗ ███╗   ███╗   #
-                        #    ██╔════╝ ██║██╔════╝ ██╔══██╗████╗  ██║██╔═══██╗██╔══██╗████╗ ████║   #
-                        #    ██║  ███╗██║██║  ███╗███████║██╔██╗ ██║██║   ██║██████╔╝██╔████╔██║   #
-                        #    ██║   ██║██║██║   ██║██╔══██║██║╚██╗██║██║   ██║██╔══██╗██║╚██╔╝██║   #
-                        #    ╚██████╔╝██║╚██████╔╝██║  ██║██║ ╚████║╚██████╔╝██║  ██║██║ ╚═╝ ██║   #
-                        #     ╚═════╝ ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝   #
-                        #                                                                          #
-                        #           GIGANORM:   When your datasets are so big,                     #
-                        #                       only a pipeline with 'giga' energy can             #
-                        #                       chew through them (and burp up a matrix).          #
-                        #                                                                          #
-                        #                         "Go big, get normalized."                        #
-                        #                                                                          #
-                        ############################################################################
-
-
-Usage:
-  giganorm_1 [--keep-intermediate] [--input_fastq] [--run-task] <fastq_files.txt|srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
-  giganorm_1 --local [--input_fastq] <fastq_files.txt|srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <metric>
-
-Arguments:
-  srr_list.txt     File with one SRR accession per line.
-  fastq_files.txt  (with --input_fastq) List of FASTQ file paths: single-end (one per line) or paired-end ("fq1::fq2" per line).
-  coords.bed       BED file of regions.
-  STAR_index_dir   Path to STAR genome index directory.
-  output_dir       Root directory for outputs.
-  batch_size       Max concurrent tasks (for SLURM mode).
-  metric           TPM, RPKM, or FPKM.
-
-Options:
-  --input_fastq         Use a FASTQ file list instead of SRR list.
-  --keep, --keep-intermediate  Keep all intermediate files.
-  --local               Run all samples serially (no SLURM; for both SRR and FASTQ).
-  -h, --help            Show this help message and exit.
 ```
 ---
 
