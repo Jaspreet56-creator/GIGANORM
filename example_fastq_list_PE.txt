@@ -1,0 +1,3 @@
+path/to/SampleName_1.fastq.gz::path/to/SampleName_2.fastq.gz
+path/to/SampleName_1.fastq.gz::path/to/SampleName_2.fastq.gz
+path/to/SampleName_1.fastq.gz::path/to/SampleName_2.fastq.gz

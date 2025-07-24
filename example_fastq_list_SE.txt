@@ -1,0 +1,3 @@
+path/to/SampleName.fastq.gz
+path/to/SampleName.fastq.gz
+path/to/SampleName.fastq.gz
