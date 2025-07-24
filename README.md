@@ -93,12 +93,12 @@ All logs are in /path/to/output_dir/logs/
 This will run in serial order:
 **Make sure when running locally do not define `<batch_size>`**
 ```bash
-./giganorm --local --keep-intermediate /path/to/example_srr_list.txt /path/to/example_coords.bed /path/to/STARindex /path/to/output_dir 3 TPM
+./giganorm --local --keep-intermediate /path/to/example_srr_list.txt /path/to/example_coords.bed /path/to/STARindex /path/to/output_dir TPM
 ```
 ## If you already have the fastq files, add:
 This will run locally for each provided fastq file in serial order, if `--local` is not defined, SLURM jobs will be submitted for respective samples
 ```bash
-./giganorm --local --keep-intermediate --input_fastq /path/to/example_fastq_list.txt /path/to/example_coords.bed /path/to/STARindex /path/to/output_dir 3 TPM
+./giganorm --local --keep-intermediate --input_fastq /path/to/example_fastq_list.txt /path/to/example_coords.bed /path/to/STARindex /path/to/output_dir TPM
 ```
 ---
 
