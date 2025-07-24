@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
 
 cat <<'EOF'
-
-
-
-
-
                                                 ############################################################################
-                                                #                                                                          #    
-                                                #     ██████╗ ██╗ ██████╗  █████╗ ███╗   ██╗ ██████╗ ██████╗ ███╗   ███╗   #     
+                                                #                                                                          #
+                                                #     ██████╗ ██╗ ██████╗  █████╗ ███╗   ██╗ ██████╗ ██████╗ ███╗   ███╗   #
                                                 #    ██╔════╝ ██║██╔════╝ ██╔══██╗████╗  ██║██╔═══██╗██╔══██╗████╗ ████║   #
                                                 #    ██║  ███╗██║██║  ███╗███████║██╔██╗ ██║██║   ██║██████╔╝██╔████╔██║   #
                                                 #    ██║   ██║██║██║   ██║██╔══██║██║╚██╗██║██║   ██║██╔══██╗██║╚██╔╝██║   #
@@ -17,18 +12,12 @@ cat <<'EOF'
                                                 #                                                                          #
                                                 #           GIGANORM:   When your datasets are so big,                     #
                                                 #                       only a pipeline with 'giga' energy can             #
-                                                #                       chew through them (and burp up a matrix).          # 
+                                                #                       chew through them (and burp up a matrix).          #
                                                 #                                                                          #
                                                 #                         "Go big, get normalized."                        #
                                                 #                                                                          #
                                                 ############################################################################
-
-
-
-
-
 EOF
-
 
 set -euo pipefail
 
@@ -37,163 +26,117 @@ show_help() {
   prog=$(basename "$0")
   cat <<EOF
 Usage:
-  $0 [--keep-intermediate] [--run-task] <srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
+  $prog <srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
+  $prog [--keep-intermediate] <srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
+  $prog [--keep-intermediate] [--input_fastq] <fastq_files.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
+  $prog --local <srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <metric>
+  $prog --local [--input_fastq] <fastq_files.txt> <coords.bed> <STAR_index_dir> <output_dir> <metric>
+  $prog --local [--keep-intermediate] [--input_fastq] <fastq_files.txt> <coords.bed> <STAR_index_dir> <output_dir> <metric>
 
 Arguments:
   srr_list.txt     File with one SRR accession per line.
-  coords.bed       BED file of regions; column 4 = region name (tab-delimited or space-delimited, will be fixed if needed).
+  fastq_files.txt  (with --input_fastq) List of FASTQ file paths: single-end (one per line) or paired-end ("fq1::fq2" per line).
+  coords.bed       BED file of regions.
   STAR_index_dir   Path to STAR genome index directory.
-  output_dir       Root directory for outputs (fastq/, bam/, counts/, logs/, <metric>/).
-  batch_size       Max number of concurrent tasks in the SLURM array. (Not needed in --run-task mode.)
-  metric           TPM, RPKM, or FPKM (normalizes by uniquely mapped reads).
+  output_dir       Root directory for outputs.
+  batch_size       Max concurrent tasks (ONLY FOR SLURM MODE).
+  metric           TPM, RPKM, or FPKM.
 
 Options:
-  -h, --help         Show this help message and exit.
-  --keep, --keep-intermediate
-                     Keep all intermediate files (FASTQ, BAM, counts, etc.) [default: delete].
-  --run-task         Run a specific array task (internal).
-  --merge-matrix     Combine all per-sample metric tables into a single matrix.
-
+  --input_fastq        Use a FASTQ file list instead of SRR list.
+  --keep-intermediate  Keep all intermediate files.
+  --local              Run all samples serially (no SLURM; for both SRR and FASTQ).
+  -h, --help           Show this help message and exit.
 EOF
 }
 
 KEEP_INTERMEDIATE=0
 MODE="pipeline"
+INPUT_MODE="srr"  # Default
+EXTRA_FLAGS=()
 
+# --- Flag parsing with propagation ---
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --input_fastq)
+      INPUT_MODE="fastq"
+      EXTRA_FLAGS+=("--input_fastq")
+      shift
+      ;;
     --keep|--keep-intermediate)
       KEEP_INTERMEDIATE=1
+      EXTRA_FLAGS+=("--keep-intermediate")
       shift
       ;;
     --run-task)
       MODE="run-task"
       shift
-      break
       ;;
     --merge-matrix)
       MODE="merge-matrix"
       shift
-      break
+      ;;
+    --local)
+      MODE="local"
+      EXTRA_FLAGS+=("--local")
+      shift
       ;;
     -h|--help)
       show_help
       exit 0
       ;;
     *)
-      break
+      break   # End of flags; positional args start here
       ;;
   esac
 done
 
-#---- MERGE-MATRIX MODE ----#
-if [[ "$MODE" == "merge-matrix" ]]; then
-  if [[ $# -ne 4 ]]; then
-    show_help
-    exit 1
-  fi
-  srr_list="$1"
-  coords_bed="$2"
-  output_dir="$3"
-  metric="${4^^}"
-
-  matrix_out="${output_dir}/${metric}/combined_${metric}_matrix.tsv"
-
-  mapfile -t regions < <(awk '{print $1 ":" $2 "-" $3}' "$coords_bed")
-
-  {
-    printf "sample"
-    for reg in "${regions[@]}"; do printf "\t%s" "$reg"; done
-    printf "\n"
-  } > "$matrix_out"
-
-  while read -r SRR_ID; do
-    [[ -z "$SRR_ID" ]] && continue
-    file="${output_dir}/${metric}/${SRR_ID}.${metric}.txt"
-    declare -A reg2val
-    while read -r chr start end region raw len rpk val; do
-      [[ "$chr" == "chr" ]] && continue  # skip header
-      key="${chr}:${start}-${end}"
-      reg2val["$key"]="$val"
-    done < "$file"
-    printf "%s" "$SRR_ID" >> "$matrix_out"
-    for reg in "${regions[@]}"; do
-      v="${reg2val[$reg]:-NA}"
-      printf "\t%s" "$v" >> "$matrix_out"
-    done
-    printf "\n" >> "$matrix_out"
-    unset reg2val
-  done < "$srr_list"
-
-  echo "[$(date)] GIGANORM: Wrote combined matrix: $matrix_out"
-
-  cat <<'EOF'
-
-      /^-----^\
-     V  o o  V        “Woof! I sniffed out your counts.”
-      |  Y  |         Norman the GigaDog approves this matrix.
-       \ Q /          All data normalized. Tail is wagging.
-       / - \
-       |    \
-       |     \     "If your files are too big,
-       || (___\        just giganorm it!"
-
-EOF
-
-  exit 0
+if [[ $# -lt 4 ]]; then
+  echo "Error: Not enough arguments supplied."
+  show_help
+  exit 1
 fi
-
-#=========================#
-#  ARGUMENT PARSING       #
-#=========================#
-if [[ "$MODE" == "run-task" ]]; then
-  if [[ $# -ne 5 ]]; then
-    show_help
-    exit 1
-  fi
-  srr_list=$1
-  coords_bed=$2
-  STAR_index_dir=$3
-  output_dir=$4
-  metric=${5^^}
-  : "${SLURM_ARRAY_TASK_ID:?SLURM_ARRAY_TASK_ID is required in --run-task mode}"
+if [[ "$INPUT_MODE" == "fastq" ]]; then
+    fastq_list="$1"; shift
+    srr_list=""
 else
-  if [[ $# -ne 6 ]]; then
-    show_help
-    exit 1
-  fi
-  srr_list=$1
-  coords_bed=$2
-  STAR_index_dir=$3
-  output_dir=$4
-  batch_size=$5
-  metric=${6^^}
+    srr_list="$1"; shift
+    fastq_list=""
 fi
 
-# ========== RESOLVE ABSOLUTE PATHS FOR ALL INPUT FILES ==========
-srr_list=$(readlink -f "$srr_list")
+coords_bed="$1"; shift
+STAR_index_dir="$1"; shift
+output_dir="$1"; shift
+
+if [[ "$MODE" == "pipeline" ]]; then
+    if [[ $# -lt 2 ]]; then
+      echo "Error: batch_size and metric must be supplied for pipeline mode."
+      show_help
+      exit 1
+    fi
+    batch_size="$1"; shift
+    metric="${1^^}"; shift
+else
+    metric="${1^^}"; shift
+fi
+
 coords_bed=$(readlink -f "$coords_bed")
 STAR_index_dir=$(readlink -f "$STAR_index_dir")
 output_dir=$(readlink -f "$output_dir")
+if [[ "$INPUT_MODE" == "fastq" ]]; then
+    fastq_list=$(readlink -f "$fastq_list")
+else
+    srr_list=$(readlink -f "$srr_list")
+fi
 
-
-
-#=========================#
-#  METRIC VALIDATION      #
-#=========================#
 if [[ "$metric" != "TPM" && "$metric" != "RPKM" && "$metric" != "FPKM" ]]; then
   echo "Error: Metric must be one of TPM, RPKM, FPKM" >&2
   exit 1
 fi
 
-#=========================#
-#  BED FORMAT VALIDATION  #
-#=========================#
 BED_FIXED=0
-coords_bed_orig="$coords_bed"
 coords_bed_fixed="${coords_bed}.tabfix"
-if [[ -f "$coords_bed" ]]; then
-  if ! head -n 5 "$coords_bed" | grep -q $'\t'; then
+if [[ -f "$coords_bed" ]] && ! head -n 5 "$coords_bed" | grep -q $'\t'; then
     awk '{$1=$1}1' OFS='\t' "$coords_bed" > "$coords_bed_fixed"
     if [[ $? -eq 0 ]]; then
       echo "[$(date)] [BED FIX] Converted '$coords_bed' to tab-delimited BED as '$coords_bed_fixed'"
@@ -203,45 +146,88 @@ if [[ -f "$coords_bed" ]]; then
       echo "[$(date)] [BED FIX] ERROR: Failed to convert '$coords_bed' to tab-delimited!"
       exit 98
     fi
-  fi
 fi
 
-#=========================#
-#  SELF-SUBMISSION        #
-#=========================#
-if [[ "$MODE" == "pipeline" ]]; then
-  N=$(wc -l < "$srr_list")
-  job_name="giganorm"
-  mkdir -p "${output_dir}/logs"
-  mkdir -p "${output_dir}/fastq" "${output_dir}/bam" \
-    "${output_dir}/counts" "${output_dir}/logs" "${output_dir}/${metric}"
-
-  sbatch_args=(--array=1-"$N"%$batch_size
-    --job-name=job_name
-    --mem=48G
-    --time=02:00:00
-    --ntasks=4
-    --output="${output_dir}/logs/%A_%a.out"
-    --error="${output_dir}/logs/%A_%a.err"
-    --chdir="${output_dir}"
-    "$0"
-  )
-  if [[ "$KEEP_INTERMEDIATE" -eq 1 ]]; then
-    sbatch_args+=(--keep-intermediate)
+if [[ "$MODE" == "local" ]]; then
+  if [[ "$INPUT_MODE" == "fastq" ]]; then
+      total=$(grep -cve '^\s*$' "$fastq_list")
+      for tid in $(seq 1 "$total"); do
+        echo "========= Running sample $tid/$total ==========="
+        SLURM_ARRAY_TASK_ID=$tid "$0" "${EXTRA_FLAGS[@]}" --run-task "$fastq_list" "$coords_bed" "$STAR_index_dir" "$output_dir" "$metric"
+      done
+  else
+      total=$(wc -l < "$srr_list")
+      for tid in $(seq 1 "$total"); do
+        echo "========= Running sample $tid/$total ==========="
+        SLURM_ARRAY_TASK_ID=$tid "$0" "${EXTRA_FLAGS[@]}" --run-task "$srr_list" "$coords_bed" "$STAR_index_dir" "$output_dir" "$metric"
+      done
   fi
-  sbatch_args+=(--run-task "$srr_list" "$coords_bed" "$STAR_index_dir" "$output_dir" "$metric")
-  exec sbatch "${sbatch_args[@]}"
   exit 0
 fi
 
-#=========================#
-#    TASK MODE            #
-#=========================#
-task_id=${SLURM_ARRAY_TASK_ID}
-SRR=$(sed -n "${task_id}p" "$srr_list" | tr -d '\r\n')
+if [[ "$MODE" == "pipeline" ]]; then
+  if [[ "$INPUT_MODE" == "fastq" ]]; then
+    N=$(grep -cve '^\s*$' "$fastq_list")
+    job_name="giganorm"
+    mkdir -p "${output_dir}/logs" "${output_dir}/fastq" "${output_dir}/bam" \
+      "${output_dir}/counts" "${output_dir}/logs" "${output_dir}/${metric}"
+    sbatch_args=(--array=1-"$N"%$batch_size
+      --job-name="$job_name"
+      --mem=48G
+      --time=02:00:00
+      --ntasks=4
+      --output="${output_dir}/logs/%A_%a.out"
+      --error="${output_dir}/logs/%A_%a.err"
+      --chdir="${output_dir}"
+      "$0"
+    )
+    [[ "$KEEP_INTERMEDIATE" -eq 1 ]] && sbatch_args+=(--keep-intermediate)
+    sbatch_args+=(--input_fastq --run-task "$fastq_list" "$coords_bed" "$STAR_index_dir" "$output_dir" "$metric")
+    exec sbatch "${sbatch_args[@]}"
+    exit 0
+  else
+    N=$(wc -l < "$srr_list")
+    job_name="giganorm"
+    mkdir -p "${output_dir}/logs" "${output_dir}/fastq" "${output_dir}/bam" \
+      "${output_dir}/counts" "${output_dir}/logs" "${output_dir}/${metric}"
+    sbatch_args=(--array=1-"$N"%$batch_size
+      --job-name="$job_name"
+      --mem=48G
+      --time=02:00:00
+      --ntasks=4
+      --output="${output_dir}/logs/%A_%a.out"
+      --error="${output_dir}/logs/%A_%a.err"
+      --chdir="${output_dir}"
+      "$0"
+    )
+    [[ "$KEEP_INTERMEDIATE" -eq 1 ]] && sbatch_args+=(--keep-intermediate)
+    sbatch_args+=(--run-task "$srr_list" "$coords_bed" "$STAR_index_dir" "$output_dir" "$metric")
+    exec sbatch "${sbatch_args[@]}"
+    exit 0
+  fi
+fi
 
-if [[ -n "${SLURM_JOB_ID:-}" && -n "$SRR" ]]; then
-  scontrol update JobId="${SLURM_JOB_ID}" JobName="giganorm_${SRR}" 2>/dev/null || true
+# =========================
+#      TASK MODE
+# =========================
+task_id="${SLURM_ARRAY_TASK_ID:-1}"
+if [[ "$INPUT_MODE" == "fastq" ]]; then
+    fq_line=$(awk "NR==$task_id" "$fastq_list")
+    fq1=""; fq2=""
+    if [[ "$fq_line" == *::* ]]; then
+        fq1="${fq_line%%::*}"
+        fq2="${fq_line##*::}"
+        base=$(basename "$fq1")
+        SAMPLE="${base%_1.fastq.gz}"
+    else
+        fq1="$fq_line"
+        fq2=""
+        base=$(basename "$fq1")
+        SAMPLE="${base%.fastq.gz}"
+    fi
+    SRR="$SAMPLE"
+else
+    SRR=$(sed -n "${task_id}p" "$srr_list" | tr -d '\r\n')
 fi
 
 if [[ -z "$SRR" ]]; then echo "No SRR for task $task_id"; exit 2; fi
@@ -250,77 +236,150 @@ logfile="${output_dir}/logs/${task_id}.log"
 exec > >(tee -a "$logfile") 2>&1
 
 echo "[$(date)] Starting SRR $SRR (task $task_id)"
-for subdir in fastq bam counts logs "$metric"; do mkdir -p "${output_dir}/$subdir"; done
+for subdir in fastq bam counts logs "$metric" fastqc; do mkdir -p "${output_dir}/$subdir"; done
 cd "$output_dir"
 
-#---- Step 1: Check for existing FASTQ; download/extract only if missing ----#
-if [[ -e "fastq/${SRR}_1.fastq.gz" && -e "fastq/${SRR}_2.fastq.gz" ]] || \
-   [[ -e "fastq/${SRR}.fastq.gz" ]] || \
-   [[ -e "fastq/${SRR}_1.fastq.gz" ]]; then
-  echo "[$(date)] [Step 1] FASTQ already exists for $SRR, skipping download/extraction."
-else
-  echo "[$(date)] [Step 1] Downloading $SRR with prefetch"
-  if ! prefetch "$SRR"; then
-    echo "[$(date)] [ERROR] prefetch failed for $SRR"; exit 10
-  fi
-
-  #---- Locate SRA file (robustly) ----#
-  sra_file=""
-  if [[ -f "${output_dir}/${SRR}/${SRR}.sra" ]]; then
-    sra_file="${output_dir}/${SRR}/${SRR}.sra"
-  elif [[ -f "$HOME/ncbi/public/sra/${SRR}.sra" ]]; then
-    sra_file="$HOME/ncbi/public/sra/${SRR}.sra"
-  else
-    found=$(find . "$HOME/ncbi/public/sra" -type f -name "${SRR}.sra" | head -n 1)
-    if [[ -n "$found" && -f "$found" ]]; then
-      sra_file="$found"
+# --- FASTP + FASTQC helper functions ---
+trim_fastqs() {
+    local fq1="$1"
+    local fq2="$2"
+    local out1="$3"
+    local out2="$4"
+    local sample="$5"
+    local jsonlog="fastq/${sample}_fastp.json"
+    local htmlrep="fastq/${sample}_fastp.html"
+    if [[ -n "$fq2" ]]; then
+        echo "[$(date)] [FASTP] Trimming paired-end $fq1 $fq2"
+        fastp -i "$fq1" -I "$fq2" -o "$out1" -O "$out2" -w 4 -j "$jsonlog" -h "$htmlrep"
+        ret=$?
+    else
+        echo "[$(date)] [FASTP] Trimming single-end $fq1"
+        fastp -i "$fq1" -o "$out1" -w 4 -j "$jsonlog" -h "$htmlrep"
+        ret=$?
     fi
-  fi
+    return $ret
+}
+run_fastqc() {
+    mkdir -p "${output_dir}/fastqc"
+    echo "[$(date)] [FASTQC] Running FastQC on $*"
+    fastqc -o "${output_dir}/fastqc" -q "$@"
+}
+TO_DELETE=()
 
-  if [[ -z "$sra_file" || ! -f "$sra_file" ]]; then
-    echo "[$(date)] [ERROR] SRA file not found after prefetch. Tried: fastq/${SRR}/${SRR}.sra and $HOME/ncbi/public/sra/${SRR}.sra"
-    exit 11
-  fi
-  echo "[$(date)] SRA file path: $sra_file"
+# ---- FASTQ/FASTP/FASTQC block (all input types) ----
+if [[ "$INPUT_MODE" == "fastq" ]]; then
+    if [[ -n "${fq2:-}" ]]; then
+        fq1_trim="fastq/${SAMPLE}_1.trimmed.fastq.gz"
+        fq2_trim="fastq/${SAMPLE}_2.trimmed.fastq.gz"
+        trim_fastqs "$fq1" "$fq2" "$fq1_trim" "$fq2_trim" "$SAMPLE" || { echo "[fastp] trimming failed for $SAMPLE"; exit 14; }
+        run_fastqc "$fq1_trim" "$fq2_trim"
+        READS="$fq1_trim $fq2_trim"
+        TO_DELETE+=("$fq1" "$fq2" "$fq1_trim" "$fq2_trim" "fastq/${SAMPLE}_fastp.json" "fastq/${SAMPLE}_fastp.html")
+        TO_DELETE+=("${output_dir}/fastqc/$(basename "${fq1_trim%.gz}")_fastqc.zip" "${output_dir}/fastqc/$(basename "${fq1_trim%.gz}")_fastqc.html")
+        TO_DELETE+=("${output_dir}/fastqc/$(basename "${fq2_trim%.gz}")_fastqc.zip" "${output_dir}/fastqc/$(basename "${fq2_trim%.gz}")_fastqc.html")
+    else
+        fq1_trim="fastq/${SAMPLE}.trimmed.fastq.gz"
+        trim_fastqs "$fq1" "" "$fq1_trim" "" "$SAMPLE" || { echo "[fastp] trimming failed for $SAMPLE"; exit 14; }
+        run_fastqc "$fq1_trim"
+        READS="$fq1_trim"
+        TO_DELETE+=("$fq1" "$fq1_trim" "fastq/${SAMPLE}_fastp.json" "fastq/${SAMPLE}_fastp.html")
+        TO_DELETE+=("${output_dir}/fastqc/$(basename "${fq1_trim%.gz}")_fastqc.zip" "${output_dir}/fastqc/$(basename "${fq1_trim%.gz}")_fastqc.html")
+    fi
+    echo "[$(date)] [FASTQ INPUT] Using trimmed FASTQ(s): $READS"
+else
 
-  #---- Step 3: Extract FASTQ ----#
-  echo "[$(date)] [Step 3] Extracting FASTQ from $sra_file"
-  if ! fastq-dump --gzip --split-3 --outdir fastq "$sra_file"; then
-    echo "[$(date)] [ERROR] fastq-dump failed on $sra_file, trying ENA fallback"
-    ena_base="https://ftp.sra.ebi.ac.uk/vol1/fastq/${SRR:0:6}/${SRR}"
-    err_count=0
-    for suffix in "" "_1" "_2"; do
-      f="fastq/${SRR}${suffix}.fastq.gz"
-      url="${ena_base}/${SRR}${suffix}.fastq.gz"
-      if [[ ! -e "$f" ]]; then
-        if ! wget -O "$f" "$url"; then
-          echo "[$(date)] [ERROR] ENA wget failed for $url"
-          ((err_count++))
+    if [[ -e "fastq/${SRR}_1.fastq.gz" && -e "fastq/${SRR}_2.fastq.gz" ]] || \
+       [[ -e "fastq/${SRR}.fastq.gz" ]] || \
+       [[ -e "fastq/${SRR}_1.fastq.gz" ]]; then
+      echo "[$(date)] [Step 1] FASTQ already exists for $SRR, skipping download/extraction."
+    else
+      
+      echo "[$(date)] [Step 1] Downloading $SRR with prefetch"
+    if ! prefetch "$SRR"; then
+      echo "[$(date)] [ERROR] prefetch failed for $SRR"; exit 10
+    fi
+    sra_file=""
+    if [[ -f "${output_dir}/${SRR}/${SRR}.sra" ]]; then
+      sra_file="${output_dir}/${SRR}/${SRR}.sra"
+    elif [[ -f "$HOME/ncbi/public/sra/${SRR}.sra" ]]; then
+      sra_file="$HOME/ncbi/public/sra/${SRR}.sra"
+    else
+      found=$(find . "$HOME/ncbi/public/sra" -type f -name "${SRR}.sra" | head -n 1)
+      [[ -n "$found" && -f "$found" ]] && sra_file="$found"
+    fi
+    if [[ -z "$sra_file" || ! -f "$sra_file" ]]; then
+      echo "[$(date)] [ERROR] SRA file not found after prefetch."
+      exit 11
+    fi
+    echo "[$(date)] SRA file path: $sra_file"
+    echo "[$(date)] [Step 3] Extracting FASTQ from $sra_file"
+    if ! fastq-dump --gzip --split-3 --outdir fastq "$sra_file"; then
+      echo "[$(date)] [ERROR] fastq-dump failed on $sra_file, trying ENA fallback"
+      ena_base="https://ftp.sra.ebi.ac.uk/vol1/fastq/${SRR:0:6}/${SRR}"
+      err_count=0
+      for suffix in "" "_1" "_2"; do
+        f="fastq/${SRR}${suffix}.fastq.gz"
+        url="${ena_base}/${SRR}${suffix}.fastq.gz"
+        if [[ ! -e "$f" ]]; then
+          if ! wget -O "$f" "$url"; then
+            echo "[$(date)] [ERROR] ENA wget failed for $url"
+            ((err_count++))
+          fi
         fi
+      done
+      if (( err_count == 3 )); then
+        echo "[$(date)] [ERROR] Could not get FASTQs from SRA or ENA for $SRR"
+        exit 12
       fi
-    done
-    if (( err_count == 3 )); then
-      echo "[$(date)] [ERROR] Could not get FASTQs from SRA or ENA for $SRR"
-      exit 12
+    else
+      echo "[$(date)] [Step 3] fastq-dump succeeded"
+      rm -f "$sra_file"
     fi
-  else
-    echo "[$(date)] [Step 3] fastq-dump succeeded"
-    rm -f "$sra_file"
-  fi
+    fi
+
+    if [[ -e "fastq/${SRR}_1.fastq.gz" && -e "fastq/${SRR}_2.fastq.gz" ]]; then
+        fq1="fastq/${SRR}_1.fastq.gz"
+        fq2="fastq/${SRR}_2.fastq.gz"
+        fq1_trim="fastq/${SRR}_1.trimmed.fastq.gz"
+        fq2_trim="fastq/${SRR}_2.trimmed.fastq.gz"
+        trim_fastqs "$fq1" "$fq2" "$fq1_trim" "$fq2_trim" "$SRR" || { echo "[fastp] trimming failed for $SRR"; exit 14; }
+        run_fastqc "$fq1_trim" "$fq2_trim"
+        READS="$fq1_trim $fq2_trim"
+        TO_DELETE+=("$fq1" "$fq2" "$fq1_trim" "$fq2_trim" "fastq/${SRR}_fastp.json" "fastq/${SRR}_fastp.html")
+        TO_DELETE+=("${output_dir}/fastqc/$(basename "${fq1_trim%.gz}")_fastqc.zip" "${output_dir}/fastqc/$(basename "${fq1_trim%.gz}")_fastqc.html")
+        TO_DELETE+=("${output_dir}/fastqc/$(basename "${fq2_trim%.gz}")_fastqc.zip" "${output_dir}/fastqc/$(basename "${fq2_trim%.gz}")_fastqc.html")
+    elif [[ -e "fastq/${SRR}.fastq.gz" ]]; then
+        fq1="fastq/${SRR}.fastq.gz"
+        fq1_trim="fastq/${SRR}.trimmed.fastq.gz"
+        trim_fastqs "$fq1" "" "$fq1_trim" "" "$SRR" || { echo "[fastp] trimming failed for $SRR"; exit 14; }
+        run_fastqc "$fq1_trim"
+        READS="$fq1_trim"
+        TO_DELETE+=("$fq1" "$fq1_trim" "fastq/${SRR}_fastp.json" "fastq/${SRR}_fastp.html")
+        TO_DELETE+=("${output_dir}/fastqc/$(basename "${fq1_trim%.gz}")_fastqc.zip" "${output_dir}/fastqc/$(basename "${fq1_trim%.gz}")_fastqc.html")
+    elif [[ -e "fastq/${SRR}_1.fastq.gz" ]]; then
+        fq1="fastq/${SRR}_1.fastq.gz"
+        fq1_trim="fastq/${SRR}_1.trimmed.fastq.gz"
+        trim_fastqs "$fq1" "" "$fq1_trim" "" "$SRR" || { echo "[fastp] trimming failed for $SRR"; exit 14; }
+        run_fastqc "$fq1_trim"
+        READS="$fq1_trim"
+        TO_DELETE+=("$fq1" "$fq1_trim" "fastq/${SRR}_fastp.json" "fastq/${SRR}_fastp.html")
+        TO_DELETE+=("${output_dir}/fastqc/$(basename "${fq1_trim%.gz}")_fastqc.zip" "${output_dir}/fastqc/$(basename "${fq1_trim%.gz}")_fastqc.html")
+    else
+      echo "[$(date)] [ERROR] No FASTQ found for $SRR after all download attempts"; exit 13
+    fi
+    echo "[$(date)] [FASTQ INPUT] Using trimmed FASTQ(s): $READS"
 fi
 
-#---- Step 4: Verify FASTQ ----#
-if [[ -e "fastq/${SRR}_1.fastq.gz" && -e "fastq/${SRR}_2.fastq.gz" ]]; then
-  READS="fastq/${SRR}_1.fastq.gz fastq/${SRR}_2.fastq.gz"
-elif [[ -e "fastq/${SRR}.fastq.gz" ]]; then
-  READS="fastq/${SRR}.fastq.gz"
-elif [[ -e "fastq/${SRR}_1.fastq.gz" ]]; then
-  READS="fastq/${SRR}_1.fastq.gz"
-else
-  echo "[$(date)] [ERROR] No FASTQ found for $SRR after all download attempts"; exit 13
+if [[ "$KEEP_INTERMEDIATE" -eq 0 ]]; then
+    echo "[$(date)] [Step 11] Removing FASTQ/FASTQC for $SRR (KEEP_INTERMEDIATE=0)"
+    for f in "${TO_DELETE[@]}"; do
+      [[ -e "$f" ]] && rm -f "$f"
+    done
 fi
 
-#---- Step 5: STAR Alignment (skip if BAM exists) ----#
+
+
+# STAR Alignment (skip if BAM exists) 
 in_bam="bam/${SRR}.Aligned.out.bam"
 if [[ -e "$in_bam" ]]; then
   echo "[$(date)] [Step 5] BAM already exists ($in_bam), skipping alignment."
@@ -338,7 +397,7 @@ else
   fi
 fi
 
-#---- Step 6: Unique filtering ----#
+#  Unique filtering 
 echo "[$(date)] [Step 6] Filtering uniquely mapped reads (MAPQ=255)"
 tmp_bam="bam/${SRR}.tmp.bam"
 if ! samtools view -b -@ "${SLURM_CPUS_PER_TASK:-8}" -q 255 "$in_bam" > "$tmp_bam"; then
@@ -346,21 +405,21 @@ if ! samtools view -b -@ "${SLURM_CPUS_PER_TASK:-8}" -q 255 "$in_bam" > "$tmp_ba
 fi
 mv "$tmp_bam" "$in_bam"
 
-#---- Step 8: Library Size ----#
+#  Library Size 
 echo "[$(date)] [Step 8] Counting library size"
 libsize=$(samtools view -c "$in_bam")
 if [[ -z "$libsize" || "$libsize" -eq 0 ]]; then
   echo "[$(date)] [ERROR] Failed to get library size for $SRR"; exit 23
 fi
 
-#---- Step 9: bedtools coverage ----#
+#  bedtools coverage 
 echo "[$(date)] [Step 9] Calculating coverage over regions"
 counts_file="counts/${SRR}.counts.txt"
 if ! bedtools coverage -a "$coords_bed" -b "$in_bam" -counts > "$counts_file"; then
   echo "[$(date)] [ERROR] bedtools coverage failed for $SRR"; exit 24
 fi
 
-#---- Step 10: Metric calculation ----#
+#  Metric calculation 
 echo "[$(date)] [Step 10] Calculating $metric"
 metric_out="${metric}/${SRR}.${metric}.txt"
 if ! awk -v OFS="\t" -v METRIC="$metric" -v libsize="$libsize" '
@@ -378,89 +437,45 @@ if ! awk -v OFS="\t" -v METRIC="$metric" -v libsize="$libsize" '
 fi
 
 
-#---- Step 11: Cleanup (per-sample) ----#
 if [[ "$KEEP_INTERMEDIATE" -eq 0 ]]; then
   echo "[$(date)] [Step 11] Cleaning up intermediate files for $SRR (KEEP_INTERMEDIATE=0)"
-
   rm -f fastq/${SRR}*.fastq.gz bam/${SRR}* counts/${SRR}*
-
   if [[ -d "${SRR}" ]]; then
     rm -rf "${SRR}"
     echo "[$(date)]   Deleted ${SRR} (SRA dir)"
   fi
-
   for d in bam counts; do
     [[ -d "${d}/${SRR}" ]] && rm -rf "${d:?}/${SRR}"
   done
-
-  if [[ "$BED_FIXED" -eq 1 ]]; then
-    rm -f "$coords_bed_fixed"
-  fi
-
+  [[ "$BED_FIXED" -eq 1 ]] && rm -f "$coords_bed_fixed"
 else
   echo "[$(date)] [Step 11] Keeping intermediate files and directories as requested (KEEP_INTERMEDIATE=1)."
 fi
 
 echo "[$(date)] Done for $SRR"
 
-
-#---- Step 12: Attempt auto-merge if all per-sample tables are present ----#
-total=$(wc -l < "$srr_list")
+# .TPM.txt files into a combined matrix 
 metric_dir="${output_dir}/${metric}"
 matrix_out="${metric_dir}/combined_${metric}_matrix.tsv"
-merge_lock="${metric_dir}/.matrix_merge.lock"
+TPM_FILES=($(ls "${metric_dir}"/*.${metric}.txt 2>/dev/null | sort))
+NFILES=${#TPM_FILES[@]}
 
-nfound=$(ls "${metric_dir}/"*.${metric}.txt 2>/dev/null | wc -l)
-if [[ "$nfound" -eq "$total" && ! -e "$merge_lock" ]]; then
-  touch "$merge_lock"
-  echo "[$(date)] [Step 12] All $nfound/$total per-sample $metric tables found, merging..."
+if [[ "$INPUT_MODE" == "fastq" ]]; then
+  expected=$(grep -cve '^\s*$' "$fastq_list")
+else
+  expected=$(wc -l < "$srr_list")
+fi
 
-  mapfile -t regions < <(awk '{print $1 ":" $2 "-" $3}' "$coords_bed")
+if [[ $NFILES -eq $expected ]]; then
   {
     printf "sample"
-    for reg in "${regions[@]}"; do printf "\t%s" "$reg"; done
+    awk 'NR>1 { printf "\t%s:%s-%s", $1, $2, $3 }' "${TPM_FILES[0]}"
     printf "\n"
   } > "$matrix_out"
-
-  while read -r SRR_ID; do
-    [[ -z "$SRR_ID" ]] && continue
-    file="${metric_dir}/${SRR_ID}.${metric}.txt"
-    declare -A reg2val
-    awk 'NR>1{print $1":"$2"-"$3, $8}' "$file" | while read -r reg val; do
-      reg2val["$reg"]="$val"
-    done
-    printf "%s" "$SRR_ID" >> "$matrix_out"
-    for reg in "${regions[@]}"; do
-      v=$(awk -v r="$reg" 'NR>1 && ($1":"$2"-"$3)==r {print $8; exit}' "$file")
-      printf "\t%s" "${v:-NA}" >> "$matrix_out"
-    done
-    printf "\n" >> "$matrix_out"
-    unset reg2val
-  done < "$srr_list"
-
-  echo "[$(date)] [GIGANORM] Merged all sample metrics to: $matrix_out"
-
-  cat <<'EOF'
-
-      /^-----^\
-     V  o o  V        “Woof! I sniffed out your counts.”
-      |  Y  |         Norman the GigaDog approves this matrix.
-       \ Q /          All data normalized. Tail is wagging.
-       / - \     _
-       |    \   //
-       |     \ //    "If your files are too big,
-       || (___\/        just giganorm it!"
-
-EOF
-
-  for d in fastq bam counts; do
-    if [[ -d "$output_dir/$d" && -z "$(ls -A "$output_dir/$d")" ]]; then
-      rmdir "$output_dir/$d"
-      echo "[$(date)] Deleted empty dir: $output_dir/$d"
-    fi
+  for f in "${TPM_FILES[@]}"; do
+    sample=$(basename "$f" | cut -d. -f1)
+    printf "%s" "$sample" >> "$matrix_out"
+    awk 'NR>1 { printf "\t%s", $8 } END{ print "" }' "$f" >> "$matrix_out"
   done
-elif [[ "$nfound" -lt "$total" ]]; then
-  echo "[$(date)] [GIGANORM] Not all per-sample tables found ($nfound/$total); skipping matrix merge."
-else
-  echo "[$(date)] [GIGANORM] Matrix already merged (lock file found)."
+  echo "[$(date)] [GIGANORM] Merged all sample metrics to: $matrix_out"
 fi
