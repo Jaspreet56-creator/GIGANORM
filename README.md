@@ -87,12 +87,12 @@ Show help:
 
 
 Usage:
-  giganorm <srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
-  giganorm [--keep-intermediate] <srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
-  giganorm [--keep-intermediate] [--input_fastq] <fastq_files.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
-  giganorm --local <srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <metric>
-  giganorm --local [--input_fastq] <fastq_files.txt> <coords.bed> <STAR_index_dir> <output_dir> <metric>
-  giganorm --local [--keep-intermediate] [--input_fastq] <fastq_files.txt> <coords.bed> <STAR_index_dir> <output_dir> <metric>
+  ./giganorm <srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
+  ./giganorm [--keep-intermediate] <srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
+  ./giganorm [--keep-intermediate] [--input_fastq] <fastq_files.txt> <coords.bed> <STAR_index_dir> <output_dir> <batch_size> <metric>
+  ./giganorm --local <srr_list.txt> <coords.bed> <STAR_index_dir> <output_dir> <metric>
+  ./giganorm --local [--input_fastq] <fastq_files.txt> <coords.bed> <STAR_index_dir> <output_dir> <metric>
+  ./giganorm --local [--keep-intermediate] [--input_fastq] <fastq_files.txt> <coords.bed> <STAR_index_dir> <output_dir> <metric>
 
 Arguments:
   srr_list.txt     File with one SRR accession per line.
