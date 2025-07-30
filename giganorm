@@ -218,7 +218,6 @@ fi
 #      TASK MODE
 # =========================
 
-module load WebProxy
 
 task_id="${SLURM_ARRAY_TASK_ID:-1}"
 if [[ "$INPUT_MODE" == "fastq" ]]; then
@@ -306,7 +305,7 @@ else
       
       echo "[$(date)] [Step 1] Downloading $SRR with prefetch"
       
-    if ! prefetch --ngc /scratch/user/jaspreet/GIGANORM/prj_27460.ngc "$SRR"; then
+    if ! prefetch "$SRR"; then
       echo "[$(date)] [ERROR] prefetch failed for $SRR"; exit 10
     fi
     sra_file=""
@@ -324,7 +323,7 @@ else
     fi
     echo "[$(date)] SRA file path: $sra_file"
     echo "[$(date)] [Step 3] Extracting FASTQ from $sra_file"
-    if ! fastq-dump --ngc /scratch/user/jaspreet/GIGANORM/prj_27460.ngc --gzip --split-3 --outdir fastq "$sra_file"; then
+    if ! fastq-dump --gzip --split-3 --outdir fastq "$sra_file"; then
       echo "[$(date)] [ERROR] fastq-dump failed on $sra_file, trying ENA fallback"
       ena_base="https://ftp.sra.ebi.ac.uk/vol1/fastq/${SRR:0:6}/${SRR}"
       err_count=0
