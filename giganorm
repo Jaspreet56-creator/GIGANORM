@@ -50,6 +50,9 @@ Options:
 EOF
 }
 
+
+
+
 KEEP_INTERMEDIATE=0
 MODE="pipeline"
 INPUT_MODE="srr"  # Default
@@ -173,9 +176,11 @@ if [[ "$MODE" == "pipeline" ]]; then
       "${output_dir}/counts" "${output_dir}/logs" "${output_dir}/${metric}"
     sbatch_args=(--array=1-"$N"%$batch_size
       --job-name="$job_name"
-      --mem=48G
-      --time=02:00:00
-      --ntasks=4
+      --export=ALL
+      --time=03:30:00
+      --ntasks=1 
+      --cpus-per-task=8 
+      --mem-per-cpu=24G
       --output="${output_dir}/logs/%A_%a.out"
       --error="${output_dir}/logs/%A_%a.err"
       --chdir="${output_dir}"
@@ -192,9 +197,11 @@ if [[ "$MODE" == "pipeline" ]]; then
       "${output_dir}/counts" "${output_dir}/logs" "${output_dir}/${metric}"
     sbatch_args=(--array=1-"$N"%$batch_size
       --job-name="$job_name"
-      --mem=48G
-      --time=02:00:00
-      --ntasks=4
+      --export=ALL
+      --time=03:30:00
+      --ntasks=1 
+      --cpus-per-task=8 
+      --mem-per-cpu=24G 
       --output="${output_dir}/logs/%A_%a.out"
       --error="${output_dir}/logs/%A_%a.err"
       --chdir="${output_dir}"
@@ -210,6 +217,9 @@ fi
 # =========================
 #      TASK MODE
 # =========================
+
+module load WebProxy
+
 task_id="${SLURM_ARRAY_TASK_ID:-1}"
 if [[ "$INPUT_MODE" == "fastq" ]]; then
     fq_line=$(awk "NR==$task_id" "$fastq_list")
@@ -295,7 +305,8 @@ else
     else
       
       echo "[$(date)] [Step 1] Downloading $SRR with prefetch"
-    if ! prefetch "$SRR"; then
+      
+    if ! prefetch --ngc /scratch/user/jaspreet/GIGANORM/prj_27460.ngc "$SRR"; then
       echo "[$(date)] [ERROR] prefetch failed for $SRR"; exit 10
     fi
     sra_file=""
@@ -313,7 +324,7 @@ else
     fi
     echo "[$(date)] SRA file path: $sra_file"
     echo "[$(date)] [Step 3] Extracting FASTQ from $sra_file"
-    if ! fastq-dump --gzip --split-3 --outdir fastq "$sra_file"; then
+    if ! fastq-dump --ngc /scratch/user/jaspreet/GIGANORM/prj_27460.ngc --gzip --split-3 --outdir fastq "$sra_file"; then
       echo "[$(date)] [ERROR] fastq-dump failed on $sra_file, trying ENA fallback"
       ena_base="https://ftp.sra.ebi.ac.uk/vol1/fastq/${SRR:0:6}/${SRR}"
       err_count=0
@@ -369,14 +380,6 @@ else
     fi
     echo "[$(date)] [FASTQ INPUT] Using trimmed FASTQ(s): $READS"
 fi
-
-if [[ "$KEEP_INTERMEDIATE" -eq 0 ]]; then
-    echo "[$(date)] [Step 11] Removing FASTQ/FASTQC for $SRR (KEEP_INTERMEDIATE=0)"
-    for f in "${TO_DELETE[@]}"; do
-      [[ -e "$f" ]] && rm -f "$f"
-    done
-fi
-
 
 
 # STAR Alignment (skip if BAM exists) 
