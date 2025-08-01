@@ -55,7 +55,7 @@ EOF
 
 KEEP_INTERMEDIATE=0
 MODE="pipeline"
-INPUT_MODE="srr"  # Default
+INPUT_MODE="srr" 
 EXTRA_FLAGS=()
 
 # --- Flag parsing with propagation ---
