@@ -177,9 +177,6 @@ output_dir/logs/
 
 ---
 
-```html
-google-site-verification: google796bc888411ab3ea.html
-```
 
 ## References
 1. Shifu Chen, Yanqing Zhou, Yaru Chen, Jia Gu, fastp: an ultra-fast all-in-one FASTQ preprocessor.
