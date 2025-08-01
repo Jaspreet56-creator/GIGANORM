@@ -89,7 +89,7 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      break   # End of flags; positional args start here
+      break   
       ;;
   esac
 done
