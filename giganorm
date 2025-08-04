@@ -55,7 +55,7 @@ EOF
 
 KEEP_INTERMEDIATE=0
 MODE="pipeline"
-INPUT_MODE="srr" 
+INPUT_MODE="srr"  # Default
 EXTRA_FLAGS=()
 
 # --- Flag parsing with propagation ---
@@ -89,7 +89,7 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      break   
+      break   # End of flags; positional args start here
       ;;
   esac
 done
@@ -176,11 +176,11 @@ if [[ "$MODE" == "pipeline" ]]; then
       "${output_dir}/counts" "${output_dir}/logs" "${output_dir}/${metric}"
     sbatch_args=(--array=1-"$N"%$batch_size
       --job-name="$job_name"
+      --cpus-per-task=8
+      --mem-per-cpu=12G
       --export=ALL
       --time=01:30:00
-      --ntasks=1 
-      --cpus-per-task=8 
-      --mem-per-cpu=12G
+      --ntasks=1
       --output="${output_dir}/logs/%A_%a.out"
       --error="${output_dir}/logs/%A_%a.err"
       --chdir="${output_dir}"
@@ -197,11 +197,11 @@ if [[ "$MODE" == "pipeline" ]]; then
       "${output_dir}/counts" "${output_dir}/logs" "${output_dir}/${metric}"
     sbatch_args=(--array=1-"$N"%$batch_size
       --job-name="$job_name"
+      --cpus-per-task=8
+      --mem-per-cpu=12G
       --export=ALL
       --time=01:30:00
-      --ntasks=1 
-      --cpus-per-task=8 
-      --mem-per-cpu=12G 
+      --ntasks=1
       --output="${output_dir}/logs/%A_%a.out"
       --error="${output_dir}/logs/%A_%a.err"
       --chdir="${output_dir}"
@@ -218,6 +218,7 @@ fi
 #      TASK MODE
 # =========================
 
+module load WebProxy
 
 task_id="${SLURM_ARRAY_TASK_ID:-1}"
 if [[ "$INPUT_MODE" == "fastq" ]]; then
@@ -305,7 +306,7 @@ else
       
       echo "[$(date)] [Step 1] Downloading $SRR with prefetch"
       
-    if ! prefetch "$SRR"; then
+    if ! prefetch --ngc /scratch/user/jaspreet/GIGANORM/prj_27460.ngc "$SRR"; then
       echo "[$(date)] [ERROR] prefetch failed for $SRR"; exit 10
     fi
     sra_file=""
@@ -323,8 +324,13 @@ else
     fi
     echo "[$(date)] SRA file path: $sra_file"
     echo "[$(date)] [Step 3] Extracting FASTQ from $sra_file"
-    if ! fastq-dump --gzip --split-3 --outdir fastq "$sra_file"; then
-      echo "[$(date)] [ERROR] fastq-dump failed on $sra_file, trying ENA fallback"
+    if ! fasterq-dump \
+          --ngc /scratch/user/jaspreet/GIGANORM/prj_27460.ngc \
+          --split-3 \
+          --threads "${SLURM_CPUS_PER_TASK:-8}" \
+          --outdir fastq \
+          "$sra_file"; then
+      echo "[$(date)] [ERROR] fasterq-dump failed on $sra_file, trying ENA fallback"
       ena_base="https://ftp.sra.ebi.ac.uk/vol1/fastq/${SRR:0:6}/${SRR}"
       err_count=0
       for suffix in "" "_1" "_2"; do
@@ -342,7 +348,10 @@ else
         exit 12
       fi
     else
-      echo "[$(date)] [Step 3] fastq-dump succeeded"
+      # compress the .fastq files into .fastq.gz
+      echo "[$(date)] Compressing with pigz"
+      pigz -p "${SLURM_CPUS_PER_TASK:-8}" fastq/"${SRR}"*.fastq
+      echo "[$(date)] Extraction and compression complete"
       rm -f "$sra_file"
     fi
     fi
