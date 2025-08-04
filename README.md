@@ -38,7 +38,7 @@
 | **STAR**        | RNA-seq aligner                              | [STAR](https://github.com/alexdobin/STAR) [3]             |
 | **samtools**    | BAM file manipulation                        | [samtools](http://www.htslib.org/) [4]                    |
 | **bedtools**    | Genomic intervals utility                    | [bedtools](https://bedtools.readthedocs.io/en/latest/)[5] |
-| **sra-tools**   | For `prefetch`, `fastq-dump`                 | [sra-tools](https://github.com/ncbi/sra-tools) [6]        |
+| **sra-tools**   | For `prefetch`, `fasterq-dump`                 | [sra-tools](https://github.com/ncbi/sra-tools) [6]        |
 | **wget**        | Command-line downloader                      | [wget](https://www.gnu.org/software/wget/)                |
 | **WebProxy**    | proxy server with web-based configuration    | [WebProxy](https://github.com/bp2008/WebProxy)[7]         |
 | **awk, grep**   | Standard text-processing tools               | Built-in to most Linux/Unix systems                       |
